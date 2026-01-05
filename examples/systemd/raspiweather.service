@@ -1,0 +1,23 @@
+[Unit]
+Description=raspiweather service
+After=network.target
+
+[Service]
+
+# Do not forget to create raspiweather user and add it to i2c group
+#
+# Example id output:
+#  $ id raspiweather
+#  uid=1001(raspiweather) gid=1001(raspiweather) groups=1001(raspiweather),988(i2c) 
+
+User=raspiweather
+Group=raspiweather
+Type=simple
+
+# My current bme280 module have 0x76 i2c address
+ExecStart=/usr/bin/raspiweather -bme280Addr 0x76
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
