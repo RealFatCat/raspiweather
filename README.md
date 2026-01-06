@@ -40,7 +40,7 @@ make clean
 
 1. Copy the binary to your Raspberry Pi:
    ```bash
-   scp raspiweather-linux-arm7 pi@raspberrypi:/usr/bin/
+   scp raspiweather-linux-arm7 pi@raspberrypi:/usr/bin/raspiweather
    ```
 
 2. Make it executable (just in case):
