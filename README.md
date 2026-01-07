@@ -98,3 +98,6 @@ The [examples](examples) directory contains configuration files and templates to
 
 - [examples/grafana/dashboard.json](examples/grafana/dashboard.json) - Grafana dashboard configuration for visualizing temperature, humidity, and pressure metrics from Prometheus.
 
+## Misc
+
+There is a simple telegram bot for this project: https://github.com/RealFatCat/raspiweatherbot
