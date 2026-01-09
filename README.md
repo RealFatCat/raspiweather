@@ -16,6 +16,7 @@ A lightweight weather monitoring service for Raspberry Pi that reads temperature
 - Go 1.25.5 or later
 - BME280 sensor connected via I2C
 - Raspberry Pi (tested on old Model 1B)
+- LCD1602 (Optional)
 
 ## Building
 
