@@ -29,6 +29,10 @@ github.com/prometheus/procfs v0.19.2 h1:zUMhqEW66Ex7OXIiDkll3tl9a1ZdilUOd/F6ZXw4
 github.com/prometheus/procfs v0.19.2/go.mod h1:M0aotyiemPhBCM0z5w87kL22CxfcH05ZpYlu+b4J7mw=
 github.com/quhar/bme280 v0.1.0 h1:NbQz1gnMA5EIAk1ja67mH9i6oA4TbA4+42LFBSRvwLU=
 github.com/quhar/bme280 v0.1.0/go.mod h1:XeyRYBCyBKkKGyzk1oqX0PAoMOPz4rF22xR81EHMJe0=
+github.com/realfatcat/fanoutsub v0.1.0 h1:3uvoCgkn866tko5YRze7MmfeVF0pisDwFh/AQsAQew0=
+github.com/realfatcat/fanoutsub v0.1.0/go.mod h1:5rm2OsscqEVXrNwLM/RyO/Fgf0i4iLO2NUPEtgn4wLI=
+github.com/realfatcat/lcd1602 v0.1.0 h1:YCjCwTv6MOGD79BZvzzR+U6bE2l9LZFcM1T5RTIM0zY=
+github.com/realfatcat/lcd1602 v0.1.0/go.mod h1:nnWUBIWyu5Ul2iNstgpXoN8mjbXFRX9PHojjuqH5Xxc=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=

@@ -15,7 +15,7 @@ Group=raspiweather
 Type=simple
 
 # My current bme280 module have 0x76 i2c address
-ExecStart=/usr/bin/raspiweather -bme280Addr 0x76
+ExecStart=/usr/bin/raspiweather -bme280Addr 0x76 -lcd -lcdBacklight
 Restart=on-failure
 RestartSec=3
 
