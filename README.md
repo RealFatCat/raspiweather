@@ -64,10 +64,31 @@ make clean
 
 ### Command Line Options
 
-- `-interval`: Data collection interval (default: 1m)
-- `-address`: HTTP server address (default: :9111)
-- `-devPath`: I2C device path (default: /dev/i2c-1)
-- `-bme280Addr`: BME280 I2C address (default: 0x77)
+```
+$ raspiweather -h
+Usage of raspiweather:
+  -address string
+        Address for HTTP Server (default ":9111")
+  -bme280Addr int
+        Address of bme280 (default 119)
+  -bmeDevPath string
+        Path to i2c bme device (default "/dev/i2c-1")
+  -interval duration
+        Interval of collecting sensors data (default 1m0s)
+  -lcd
+        Enable LCD1602
+  -lcdAddr int
+        Address of lcd1602 (default 39)
+  -lcdBacklight
+        Turn on LCD backlight
+  -lcdCols int
+        Number of LCD columns (default 16)
+  -lcdDevPath string
+        Path to i2c lcd device (default "/dev/i2c-1")
+  -lcdRows int
+        Number of LCD rows (default 2)
+  -v    Show version and exit
+```
 
 ## API Endpoints
 
