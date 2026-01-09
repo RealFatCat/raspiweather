@@ -9,6 +9,7 @@ A lightweight weather monitoring service for Raspberry Pi that reads temperature
 - Provides JSON endpoint at `/sensor-data`
 - Configurable data collection interval
 - Cross-platform builds for multiple architectures
+- LCD1602 support
 
 ## Requirements
 
