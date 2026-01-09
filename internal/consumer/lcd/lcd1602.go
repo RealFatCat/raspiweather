@@ -3,6 +3,7 @@ package lcd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/realfatcat/raspiweather/internal/types"
 )
@@ -28,8 +29,13 @@ func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 					// Channel closed, exit gracefully
 					return
 				}
-				l.p.Print(fmt.Sprintf("T:%.1fC H:%.1f%%", sd.Temperature, sd.Humidity), 0, 0)
-				l.p.Print(fmt.Sprintf("P:%.1fmmHg  ^_^", sd.Pressure*0.75), 1, 0)
+				if err := l.p.Print(fmt.Sprintf("T:%.1fC H:%.1f%%", sd.Temperature, sd.Humidity), 0, 0); err != nil {
+					slog.Error("Writing Temperature and Humidity to LCD", "error", err)
+				}
+
+				if err := l.p.Print(fmt.Sprintf("P:%.1fmmHg  ^_^", sd.Pressure*0.75), 1, 0); err != nil {
+					slog.Error("Writing Pressure to LCD", "error", err)
+				}
 			}
 		}
 	}()
