@@ -452,11 +452,11 @@
               },
               {
                 "color": "green",
-                "value": 750
+                "value": 735
               },
               {
                 "color": "yellow",
-                "value": 770
+                "value": 755
               }
             ]
           },
@@ -652,7 +652,7 @@
   "timezone": "browser",
   "title": "RaspiWeather",
   "uid": "adhnczl",
-  "version": 6,
+  "version": 7,
   "weekStart": "",
   "id": null
 }
