@@ -8,14 +8,13 @@ After=network.target
 #
 # Example id output:
 #  $ id raspiweather
-#  uid=1001(raspiweather) gid=1001(raspiweather) groups=1001(raspiweather),988(i2c) 
+#  uid=1001(raspiweather) gid=1001(raspiweather) groups=1001(raspiweather),988(i2c)
 
 User=raspiweather
 Group=raspiweather
 Type=simple
 
-# My current bme280 module have 0x76 i2c address
-ExecStart=/usr/bin/raspiweather -bme280Addr 0x76 -lcd -lcdBacklight
+ExecStart=/usr/bin/raspiweather -bmeSensors OUT:/dev/i2c-1:0x76,IN:/dev/i2c-1:0x77 -lcd -lcdBacklight
 Restart=on-failure
 RestartSec=3
 
