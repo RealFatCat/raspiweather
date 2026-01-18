@@ -7,7 +7,7 @@ import (
 
 	"github.com/quhar/bme280"
 
-	"github.com/realfatcat/raspiweather/internal/types"
+	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
 const (

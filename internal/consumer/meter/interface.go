@@ -6,7 +6,7 @@ import "context"
 // In future we can use otel metrics library to record metrics,
 // so it is better to keep context in the interface.
 type Metrics interface {
-	RecordTemperature(ctx context.Context, num float64)
-	RecordHumidity(ctx context.Context, num float64)
-	RecordPressure(ctx context.Context, num float64)
+	RecordTemperature(ctx context.Context, sensorID string, num float64)
+	RecordHumidity(ctx context.Context, sensorID string, num float64)
+	RecordPressure(ctx context.Context, sensorID string, num float64)
 }

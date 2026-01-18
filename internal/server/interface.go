@@ -1,7 +1,7 @@
 package server
 
-import "github.com/realfatcat/raspiweather/internal/types"
+import "github.com/realfatcat/raspiweather/pkg/types"
 
 type Producer interface {
-	ReadWeatherData() (types.WeatherData, error)
+	ReadWeatherData() ([]types.WeatherData, error)
 }

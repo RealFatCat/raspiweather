@@ -3,7 +3,7 @@ package consumer
 import (
 	"context"
 
-	"github.com/realfatcat/raspiweather/internal/types"
+	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
 type Consumer interface {
