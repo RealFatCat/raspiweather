@@ -29,7 +29,6 @@ var (
 	interval      = flag.Duration("interval", 1*time.Minute, "Interval of collecting sensors data")
 	httpAddress   = flag.String("httpAddress", ":9111", "Address for HTTP Server")
 	i2cLCDDevPath = flag.String("lcdDevPath", lcd1602.DefaultDevice, "Path to i2c lcd device")
-	bmeAddr       = flag.Int("bme280Addr", bme280.DefaultI2CAddress, "Address of bme280")
 	lcdAddr       = flag.Int("lcdAddr", lcd1602.DefaultAddress, "Address of lcd1602")
 	lcdColumns    = flag.Int("lcdCols", 16, "Number of LCD columns")
 	lcdRows       = flag.Int("lcdRows", 2, "Number of LCD rows")
@@ -73,12 +72,14 @@ func main() {
 	m := meter.New(sensorMetrics)
 	m.Consume(ctx, meterCh)
 
+	var backlightToggler server.BacklightToggler
 	if *lcdEnabled {
 		lcdDev, err := lcd1602.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, *lcdBacklight)
 		if err != nil {
 			slog.Error("Starting LCD1602", "error", err)
 			os.Exit(1)
 		}
+		backlightToggler = lcdDev
 
 		lcdCh := make(chan types.WeatherData, 1)
 		fan.Subscribe(lcdCh)
@@ -93,7 +94,7 @@ func main() {
 
 	fan.Start(ctx)
 
-	httpSrv := server.NewHTTP(*httpAddress, dataProducer)
+	httpSrv := server.NewHTTP(*httpAddress, dataProducer, backlightToggler)
 	if err := httpSrv.ListenAndServe(ctx); err != nil {
 		slog.Error("HTTP server", "error", err)
 		os.Exit(1)
@@ -132,7 +133,7 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 
 		bus, err := bme280.New(devPath, addr)
 		if err != nil {
-			return nil, fmt.Errorf("Starting BME280", "sensor_id", sensorID, "error", err)
+			return nil, fmt.Errorf("starting BME280, sensor_id %s: %w", sensorID, err)
 		}
 
 		sensorConfigs = append(sensorConfigs, producer.SensorConfig{

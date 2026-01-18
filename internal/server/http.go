@@ -20,18 +20,21 @@ const (
 )
 
 type HTTP struct {
-	srv      *http.Server
-	producer Producer
+	srv              *http.Server
+	producer         Producer
+	backlightToggler BacklightToggler
 }
 
-func NewHTTP(address string, producer Producer) *HTTP {
+func NewHTTP(address string, producer Producer, toggler BacklightToggler) *HTTP {
 	h := &HTTP{
-		producer: producer,
+		producer:         producer,
+		backlightToggler: toggler,
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/sensor-data", h.handleGetWeatherData)
+	mux.HandleFunc("/toggle-leds", h.handleToggleLeds)
 
 	h.srv = &http.Server{
 		Addr:         address,
@@ -63,6 +66,27 @@ func (h *HTTP) handleGetWeatherData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *HTTP) handleToggleLeds(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.backlightToggler == nil {
+		errMsg := "toggler is not set"
+		slog.Error(errMsg)
+		http.Error(w, errMsg, http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.backlightToggler.ToggleBacklight(); err != nil {
+		slog.Error("reading sensor data", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write([]byte("OK"))
 }
 
 func (h *HTTP) ListenAndServe(ctx context.Context) error {
