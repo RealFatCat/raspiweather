@@ -124,9 +124,9 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "editorMode": "builder",
-          "expr": "sensor_temperature{job=\"raspiweather\"}",
-          "legendFormat": "__auto",
+          "editorMode": "code",
+          "expr": "sensor_temperature{job=\"raspiweather\",}",
+          "legendFormat": "{{sensor_id}}",
           "range": true,
           "refId": "A"
         }
@@ -242,7 +242,7 @@
           },
           "editorMode": "code",
           "expr": "sensor_temperature{job=\"raspiweather\"}",
-          "legendFormat": "Temperature",
+          "legendFormat": "{{sensor_id}}",
           "range": true,
           "refId": "A"
         }
@@ -313,7 +313,7 @@
           },
           "editorMode": "builder",
           "expr": "sensor_humidity{job=\"raspiweather\"}",
-          "legendFormat": "__auto",
+          "legendFormat": "{{sensor_id}}",
           "range": true,
           "refId": "A"
         }
@@ -421,7 +421,7 @@
           },
           "editorMode": "builder",
           "expr": "sensor_humidity{job=\"raspiweather\"}",
-          "legendFormat": "Humidity",
+          "legendFormat": "{{sensor_id}}",
           "range": true,
           "refId": "A"
         }
@@ -495,7 +495,7 @@
           },
           "editorMode": "code",
           "expr": "sensor_pressure{job=\"raspiweather\"} * 0.75",
-          "legendFormat": "__auto",
+          "legendFormat": "{{sensor_id}}",
           "range": true,
           "refId": "A"
         }
@@ -616,7 +616,7 @@
           },
           "editorMode": "code",
           "expr": "sensor_pressure{job=\"raspiweather\"} * 0.75",
-          "legendFormat": "Pressure",
+          "legendFormat": "{{sensor_id}}",
           "range": true,
           "refId": "A"
         },
@@ -652,7 +652,7 @@
   "timezone": "browser",
   "title": "RaspiWeather",
   "uid": "adhnczl",
-  "version": 7,
+  "version": 8,
   "weekStart": "",
   "id": null
 }

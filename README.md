@@ -4,19 +4,20 @@ A lightweight weather monitoring service for Raspberry Pi that reads temperature
 
 ## Features
 
-- Reads temperature, humidity, and pressure from BME280 sensor via I2C
+- Reads temperature, humidity, and pressure from BME280 sensor(s) via I2C
+- Supports multiple BME280 sensors simultaneously
 - Exposes Prometheus metrics at `/metrics`
 - Provides JSON endpoint at `/sensor-data`
+- LCD1602 display support with backlight control
 - Configurable data collection interval
 - Cross-platform builds for multiple architectures
-- LCD1602 support
 
 ## Requirements
 
 - Go 1.25.5 or later
-- BME280 sensor connected via I2C
+- BME280 sensor(s) connected via I2C
 - Raspberry Pi (tested on old Model 1B)
-- LCD1602 (Optional)
+- LCD1602 (Optional, for display output)
 
 ## Building
 
@@ -59,8 +60,17 @@ make clean
 ## Usage
 
 ```bash
-# Run with default settings (reads from /dev/i2c-1 every minute)
+# Run with default settings (reads from /dev/i2c-1:0x76 every minute)
 ./raspiweather
+
+# Run with multiple sensors
+./raspiweather -bmeSensors "out:/dev/i2c-1:0x76,in:/dev/i2c-1:0x77"
+
+# Run with LCD display enabled
+./raspiweather -lcd -lcdBacklight
+
+# Run with custom interval and HTTP address
+./raspiweather -interval 30s -httpAddress ":8080"
 ```
 
 ### Command Line Options
@@ -68,12 +78,11 @@ make clean
 ```
 $ raspiweather -h
 Usage of raspiweather:
-  -address string
+  -bmeSensors string
+        Comma-separated list of BME280 sensors in format id:devPath:address 
+        (e.g., 'out:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77') (default "out:/dev/i2c-1:0x76")
+  -httpAddress string
         Address for HTTP Server (default ":9111")
-  -bme280Addr int
-        Address of bme280 (default 119)
-  -bmeDevPath string
-        Path to i2c bme device (default "/dev/i2c-1")
   -interval duration
         Interval of collecting sensors data (default 1m0s)
   -lcd
@@ -91,27 +100,51 @@ Usage of raspiweather:
   -v    Show version and exit
 ```
 
+#### Sensor Configuration Format
+
+The `-bmeSensors` flag accepts a comma-separated list of sensors in the format `id:devPath:address`:
+- `id`: Unique identifier for the sensor (e.g., "out", "in", "sensor1")
+- `devPath`: Path to the I2C device (e.g., "/dev/i2c-1")
+- `address`: I2C address in decimal or hexadecimal format (e.g., "0x76" or "118")
+
+Examples:
+- Single sensor: `-bmeSensors "out:/dev/i2c-1:0x76"`
+- Multiple sensors: `-bmeSensors "out:/dev/i2c-1:0x76,in:/dev/i2c-1:0x77"`
+
 ## API Endpoints
 
 ### GET /sensor-data
 
-Returns current sensor readings in JSON format:
+Returns current sensor readings from all configured sensors in JSON format:
 
 ```json
-{
-  "temperature": 25.0,
-  "humidity": 44.0,
-  "pressure": 1000.0,
-}
+[
+  {
+    "sensor_id": "out",
+    "temperature": 25.0,
+    "humidity": 44.0,
+    "pressure": 1000.0
+  },
+  {
+    "sensor_id": "in",
+    "temperature": 22.5,
+    "humidity": 50.0,
+    "pressure": 1001.2
+  }
+]
 ```
 
 ### GET /metrics
 
 Prometheus metrics endpoint with the following metrics:
 
-- `sensor_temperature` - Current temperature in Celsius
-- `sensor_humidity` - Current humidity in percent
-- `sensor_pressure` - Current pressure in hPa
+- `sensor_temperature` - Current temperature in Celsius (labeled by sensor_id)
+- `sensor_humidity` - Current humidity in percent (labeled by sensor_id)
+- `sensor_pressure` - Current pressure in hPa (labeled by sensor_id)
+
+### GET /toggle-leds
+
+Toggles the LCD backlight on/off. Returns "OK" on success. Requires LCD to be enabled.
 
 ## Examples
 
