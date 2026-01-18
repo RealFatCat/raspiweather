@@ -8,39 +8,45 @@ import (
 )
 
 type SensorsMetrics struct {
-	temperature prometheus.Gauge
-	humidity    prometheus.Gauge
-	pressure    prometheus.Gauge
+	temperature *prometheus.GaugeVec
+	humidity    *prometheus.GaugeVec
+	pressure    *prometheus.GaugeVec
 }
 
 func NewSensorsMetrics() *SensorsMetrics {
 	return &SensorsMetrics{
-		temperature: promauto.NewGauge(prometheus.GaugeOpts{
-			Name:        "sensor_temperature",
-			Help:        "Current temperature.",
-			ConstLabels: prometheus.Labels{"unit": "celsius"},
-		}),
-		humidity: promauto.NewGauge(prometheus.GaugeOpts{
-			Name:        "sensor_humidity",
-			Help:        "Current humidity.",
-			ConstLabels: prometheus.Labels{"unit": "percent"},
-		}),
-		pressure: promauto.NewGauge(prometheus.GaugeOpts{
-			Name:        "sensor_pressure",
-			Help:        "Current pressure.",
-			ConstLabels: prometheus.Labels{"unit": "hPa"},
-		}),
+		temperature: promauto.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "sensor_temperature",
+				Help: "Current temperature.",
+			},
+			[]string{"sensor_id", "unit"},
+		),
+		humidity: promauto.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "sensor_humidity",
+				Help: "Current humidity.",
+			},
+			[]string{"sensor_id", "unit"},
+		),
+		pressure: promauto.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "sensor_pressure",
+				Help: "Current pressure.",
+			},
+			[]string{"sensor_id", "unit"},
+		),
 	}
 }
 
-func (s *SensorsMetrics) RecordTemperature(_ context.Context, num float64) {
-	s.temperature.Set(num)
+func (s *SensorsMetrics) RecordTemperature(_ context.Context, sensorID string, num float64) {
+	s.temperature.WithLabelValues(sensorID, "celsius").Set(num)
 }
 
-func (s *SensorsMetrics) RecordHumidity(_ context.Context, num float64) {
-	s.humidity.Set(num)
+func (s *SensorsMetrics) RecordHumidity(_ context.Context, sensorID string, num float64) {
+	s.humidity.WithLabelValues(sensorID, "percent").Set(num)
 }
 
-func (s *SensorsMetrics) RecordPressure(_ context.Context, num float64) {
-	s.pressure.Set(num)
+func (s *SensorsMetrics) RecordPressure(_ context.Context, sensorID string, num float64) {
+	s.pressure.WithLabelValues(sensorID, "hPa").Set(num)
 }

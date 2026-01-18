@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/realfatcat/raspiweather/internal/consumer"
-	"github.com/realfatcat/raspiweather/internal/types"
+	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
 type Meter struct {
@@ -30,9 +30,13 @@ func (m *Meter) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 					// Channel closed, exit gracefully
 					return
 				}
-				m.metrics.RecordTemperature(ctx, sd.Temperature)
-				m.metrics.RecordHumidity(ctx, sd.Humidity)
-				m.metrics.RecordPressure(ctx, sd.Pressure)
+				sensorID := sd.SensorID
+				if sensorID == "" {
+					sensorID = "default"
+				}
+				m.metrics.RecordTemperature(ctx, sensorID, sd.Temperature)
+				m.metrics.RecordHumidity(ctx, sensorID, sd.Humidity)
+				m.metrics.RecordPressure(ctx, sensorID, sd.Pressure)
 			}
 		}
 	}()

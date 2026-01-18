@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/realfatcat/raspiweather/internal/types"
+	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
 type LCD struct {

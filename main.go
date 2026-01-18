@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,15 +20,14 @@ import (
 	"github.com/realfatcat/raspiweather/internal/metrics"
 	"github.com/realfatcat/raspiweather/internal/producer"
 	"github.com/realfatcat/raspiweather/internal/server"
-	"github.com/realfatcat/raspiweather/internal/types"
+	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
 var Version string
 
 var (
 	interval      = flag.Duration("interval", 1*time.Minute, "Interval of collecting sensors data")
-	address       = flag.String("address", ":9111", "Address for HTTP Server")
-	i2cBMEDevPath = flag.String("bmeDevPath", bme280.DefaultDevPath, "Path to i2c bme device")
+	httpAddress   = flag.String("httpAddress", ":9111", "Address for HTTP Server")
 	i2cLCDDevPath = flag.String("lcdDevPath", lcd1602.DefaultDevice, "Path to i2c lcd device")
 	bmeAddr       = flag.Int("bme280Addr", bme280.DefaultI2CAddress, "Address of bme280")
 	lcdAddr       = flag.Int("lcdAddr", lcd1602.DefaultAddress, "Address of lcd1602")
@@ -34,6 +35,7 @@ var (
 	lcdRows       = flag.Int("lcdRows", 2, "Number of LCD rows")
 	lcdBacklight  = flag.Bool("lcdBacklight", false, "Turn on LCD backlight")
 	lcdEnabled    = flag.Bool("lcd", false, "Enable LCD1602")
+	bmeSensors    = flag.String("bmeSensors", "out:/dev/i2c-1:0x76", "Comma-separated list of BME280 sensors in format id:devPath:address (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77')")
 	showVersion   = flag.Bool("v", false, "Show version and exit")
 )
 
@@ -50,14 +52,18 @@ func main() {
 
 	sensorMetrics := metrics.NewSensorsMetrics()
 
-	bmeBus, err := bme280.New(*i2cBMEDevPath, *bmeAddr)
+	var sensorConfigs []producer.SensorConfig
+
+	// Parse multiple sensors from flag, init buses.
+	sensorConfigs, err := initSensorConfigs(bmeSensors)
 	if err != nil {
-		slog.Error("Starting BME280", "error", err)
+		slog.Error("Init Sensor Config", "error", err)
 		os.Exit(1)
 	}
-	defer func() { bmeBus.Close() }()
 
-	dataProducer := producer.New(bmeBus, *interval)
+	// Create multi producer
+	dataProducer := producer.NewMultiProducer(sensorConfigs, *interval)
+
 	ch := dataProducer.Produce(ctx)
 
 	fan := fanoutsub.New(ch)
@@ -87,9 +93,69 @@ func main() {
 
 	fan.Start(ctx)
 
-	httpSrv := server.NewHTTP(*address, dataProducer)
+	httpSrv := server.NewHTTP(*httpAddress, dataProducer)
 	if err := httpSrv.ListenAndServe(ctx); err != nil {
 		slog.Error("HTTP server", "error", err)
 		os.Exit(1)
 	}
+}
+
+// initSensorConfigs parses sensor configurations, create buses.
+func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
+	if *bmeSensors == "" {
+		return nil, fmt.Errorf("bmeSensors flag is not set")
+	}
+
+	var sensorConfigs []producer.SensorConfig
+
+	for part := range strings.SplitSeq(*bmeSensors, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		// Format: id:devPath:address
+		fields := strings.Split(part, ":")
+		if len(fields) != 3 {
+			slog.Error("Invalid sensor format", "sensor", part, "expected_format", "id:devPath:address")
+			os.Exit(1)
+		}
+
+		sensorID := strings.TrimSpace(fields[0])
+		devPath := strings.TrimSpace(fields[1])
+		addrStr := strings.TrimSpace(fields[2])
+
+		addr, err := parseAddr(addrStr)
+		if err != nil {
+			return nil, err
+		}
+
+		bus, err := bme280.New(devPath, addr)
+		if err != nil {
+			return nil, fmt.Errorf("Starting BME280", "sensor_id", sensorID, "error", err)
+		}
+
+		sensorConfigs = append(sensorConfigs, producer.SensorConfig{
+			ID:  sensorID,
+			Bus: bus,
+		})
+	}
+	return sensorConfigs, nil
+}
+
+// parseAddress parses strings address to int, support both decimal and hex
+func parseAddr(inAddr string) (int, error) {
+	if strings.HasPrefix(inAddr, "0x") || strings.HasPrefix(inAddr, "0X") {
+		addr64, err := strconv.ParseInt(inAddr[2:], 16, 64)
+		if err != nil {
+			return 0, err
+		}
+		return int(addr64), nil
+	}
+
+	addr64, err := strconv.ParseInt(inAddr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int(addr64), nil
 }
