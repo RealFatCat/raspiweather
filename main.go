@@ -26,17 +26,18 @@ import (
 var Version string
 
 var (
-	interval      = flag.Duration("interval", 1*time.Minute, "Interval of collecting sensors data")
-	httpAddress   = flag.String("httpAddress", ":9111", "Address for HTTP Server")
-	i2cLCDDevPath = flag.String("lcdDevPath", lcd1602.DefaultDevice, "Path to i2c lcd device")
-	lcdAddr       = flag.Int("lcdAddr", lcd1602.DefaultAddress, "Address of lcd1602")
-	lcdColumns    = flag.Int("lcdCols", 16, "Number of LCD columns")
-	lcdRows       = flag.Int("lcdRows", 2, "Number of LCD rows")
-	lcdBacklight  = flag.Bool("lcdBacklight", false, "Turn on LCD backlight")
-	lcdEnabled    = flag.Bool("lcd", false, "Enable LCD1602")
-	bmeSensors    = flag.String("bmeSensors", "out:/dev/i2c-1:0x76", "Comma-separated list of BME280 sensors in format id:devPath:address (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77')")
-	font          = flag.Uint("font", lcd1602.Font5x8, "lcd font, possible values 0 for 5x8 and 4 for 5x10")
-	showVersion   = flag.Bool("v", false, "Show version and exit")
+	interval         = flag.Duration("interval", 1*time.Minute, "Interval of collecting sensors data")
+	httpAddress      = flag.String("httpAddress", ":9111", "Address for HTTP Server")
+	i2cLCDDevPath    = flag.String("lcdDevPath", lcd1602.DefaultDevice, "Path to i2c lcd device")
+	lcdAddr          = flag.Int("lcdAddr", lcd1602.DefaultAddress, "Address of lcd1602")
+	lcdColumns       = flag.Int("lcdCols", 16, "Number of LCD columns")
+	lcdRows          = flag.Int("lcdRows", 2, "Number of LCD rows")
+	lcdBacklight     = flag.Bool("lcdBacklight", false, "Turn on LCD backlight")
+	lcdEnabled       = flag.Bool("lcd", false, "Enable LCD1602")
+	bmeSensors       = flag.String("bmeSensors", "out:/dev/i2c-1:0x76", "Comma-separated list of BME280 sensors in format id:devPath:address (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77')")
+	showVersion      = flag.Bool("v", false, "Show version and exit")
+	font             = flag.Uint("font", lcd1602.Font5x8, "lcd font, possible values 0 for 5x8 and 4 for 5x10")
+	rotationInterval = flag.Duration("rotationInterval", 5*time.Second, "Rotation interval of sensors data displayed on screen")
 )
 
 func main() {
@@ -89,7 +90,7 @@ func main() {
 
 		lcdCh := make(chan types.WeatherData, 1)
 		fan.Subscribe(lcdCh)
-		lcdConsumer := lcd.New(lcdDev)
+		lcdConsumer := lcd.New(lcdDev, *rotationInterval)
 		lcdConsumer.Consume(ctx, lcdCh)
 
 		defer func() {
