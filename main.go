@@ -35,6 +35,7 @@ var (
 	lcdBacklight  = flag.Bool("lcdBacklight", false, "Turn on LCD backlight")
 	lcdEnabled    = flag.Bool("lcd", false, "Enable LCD1602")
 	bmeSensors    = flag.String("bmeSensors", "out:/dev/i2c-1:0x76", "Comma-separated list of BME280 sensors in format id:devPath:address (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77')")
+	font          = flag.Uint("font", lcd1602.Font5x8, "lcd font, possible values 0 for 5x8 and 4 for 5x10")
 	showVersion   = flag.Bool("v", false, "Show version and exit")
 )
 
@@ -74,7 +75,12 @@ func main() {
 
 	var backlightToggler server.BacklightToggler
 	if *lcdEnabled {
-		lcdDev, err := lcd1602.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, *lcdBacklight)
+		if *font != lcd1602.Font5x8 && *font != lcd1602.Font5x10 {
+			slog.Error("Invalid font", "value", *font, "acceptable", []int{lcd1602.Font5x8, lcd1602.Font5x10})
+			os.Exit(1)
+		}
+		font := byte(*font)
+		lcdDev, err := lcd1602.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, font, *lcdBacklight)
 		if err != nil {
 			slog.Error("Starting LCD1602", "error", err)
 			os.Exit(1)

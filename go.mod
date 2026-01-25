@@ -6,7 +6,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/quhar/bme280 v0.1.0
 	github.com/realfatcat/fanoutsub v0.1.0
-	github.com/realfatcat/lcd1602 v0.2.0
+	github.com/realfatcat/lcd1602 v0.3.1
 	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93
 )
 
