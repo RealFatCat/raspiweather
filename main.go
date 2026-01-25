@@ -14,9 +14,10 @@ import (
 
 	"github.com/realfatcat/fanoutsub"
 	"github.com/realfatcat/lcd1602"
-	"github.com/realfatcat/raspiweather/internal/consumer/lcd"
+	consumer_lcd "github.com/realfatcat/raspiweather/internal/consumer/lcd"
 	"github.com/realfatcat/raspiweather/internal/consumer/meter"
 	bme280 "github.com/realfatcat/raspiweather/internal/devices/bme280"
+	"github.com/realfatcat/raspiweather/internal/devices/lcd"
 	"github.com/realfatcat/raspiweather/internal/metrics"
 	"github.com/realfatcat/raspiweather/internal/producer"
 	"github.com/realfatcat/raspiweather/internal/server"
@@ -35,8 +36,8 @@ var (
 	lcdBacklight     = flag.Bool("lcdBacklight", false, "Turn on LCD backlight")
 	lcdEnabled       = flag.Bool("lcd", false, "Enable LCD1602")
 	bmeSensors       = flag.String("bmeSensors", "out:/dev/i2c-1:0x76", "Comma-separated list of BME280 sensors in format id:devPath:address (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77')")
-	showVersion      = flag.Bool("v", false, "Show version and exit")
 	font             = flag.Uint("font", lcd1602.Font5x8, "lcd font, possible values 0 for 5x8 and 4 for 5x10")
+	showVersion      = flag.Bool("v", false, "Show version and exit")
 	rotationInterval = flag.Duration("rotationInterval", 5*time.Second, "Rotation interval of sensors data displayed on screen")
 )
 
@@ -76,12 +77,7 @@ func main() {
 
 	var backlightToggler server.BacklightToggler
 	if *lcdEnabled {
-		if *font != lcd1602.Font5x8 && *font != lcd1602.Font5x10 {
-			slog.Error("Invalid font", "value", *font, "acceptable", []int{lcd1602.Font5x8, lcd1602.Font5x10})
-			os.Exit(1)
-		}
-		font := byte(*font)
-		lcdDev, err := lcd1602.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, font, *lcdBacklight)
+		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, byte(*font), *lcdBacklight)
 		if err != nil {
 			slog.Error("Starting LCD1602", "error", err)
 			os.Exit(1)
@@ -90,7 +86,7 @@ func main() {
 
 		lcdCh := make(chan types.WeatherData, 1)
 		fan.Subscribe(lcdCh)
-		lcdConsumer := lcd.New(lcdDev, *rotationInterval)
+		lcdConsumer := consumer_lcd.New(lcdDev, *rotationInterval)
 		lcdConsumer.Consume(ctx, lcdCh)
 
 		defer func() {
