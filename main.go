@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/realfatcat/fanoutsub"
-	lcd1602 "github.com/realfatcat/lcd1602/pkg/lcd"
+	"github.com/realfatcat/lcd1602"
 	"github.com/realfatcat/raspiweather/internal/consumer/lcd"
 	"github.com/realfatcat/raspiweather/internal/consumer/meter"
 	bme280 "github.com/realfatcat/raspiweather/internal/devices/bme280"
