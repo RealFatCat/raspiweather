@@ -98,18 +98,18 @@ func (l *LCD) printFourRows(wd types.WeatherData) {
 	}
 
 	if err := l.printer.Print(fmt.Sprintf("ID: %.*s", idLenLimit, wd.SensorID), 0, 0); err != nil {
-		slog.Error("Writing SendorID to LCD", "error", err)
+		slog.Error("Writing SensorID to LCD", "error", err)
 	}
 
 	if err := l.printer.Print(fmt.Sprintf("Temp: %.2fC", wd.Temperature), 1, 0); err != nil {
-		slog.Error("Writing SendorID to LCD", "error", err)
+		slog.Error("Writing Temperature to LCD", "error", err)
 	}
 
 	if err := l.printer.Print(fmt.Sprintf("Humid: %.2f%%", wd.Humidity), 2, 0); err != nil {
-		slog.Error("Writing SendorID to LCD", "error", err)
+		slog.Error("Writing Humidity to LCD", "error", err)
 	}
 
 	if err := l.printer.Print(fmt.Sprintf("Pressure: %.2fmm", wd.Pressure*0.75), 3, 0); err != nil {
-		slog.Error("Writing SendorID to LCD", "error", err)
+		slog.Error("Writing Pressure to LCD", "error", err)
 	}
 }
