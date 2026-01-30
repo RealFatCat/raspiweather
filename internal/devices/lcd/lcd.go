@@ -3,7 +3,7 @@ package lcd
 import (
 	"fmt"
 
-	lcd1602 "github.com/realfatcat/lcd1602/pkg/lcd"
+	"github.com/realfatcat/lcd1602"
 )
 
 var AcceptableFonts = []uint{lcd1602.Font5x8, lcd1602.Font5x10}
