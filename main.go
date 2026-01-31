@@ -38,7 +38,7 @@ var (
 	bmeSensors       = flag.String("bmeSensors", "out:/dev/i2c-1:0x76", "Comma-separated list of BME280 sensors in format id:devPath:address (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77')")
 	font             = flag.Uint("font", lcd1602.Font5x8, "lcd font, possible values 0 for 5x8 and 4 for 5x10")
 	showVersion      = flag.Bool("v", false, "Show version and exit")
-	rotationInterval = flag.Duration("rotationInterval", 5*time.Second, "Rotation interval of sensors data displayed on screen")
+	rotationInterval = flag.Duration("rotationInterval", 10*time.Second, "Rotation interval of sensors data displayed on screen")
 )
 
 func main() {

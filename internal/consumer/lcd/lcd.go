@@ -68,6 +68,7 @@ func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 				if !ok {
 					break
 				}
+				l.printer.Clear()
 				l.print(wd)
 			}
 		}
