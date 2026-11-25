@@ -7,16 +7,15 @@ import (
 )
 
 type storage struct {
-	mu     sync.RWMutex
-	data   map[string]types.WeatherData
-	idxes  []string
-	curIdx int
+	mu    sync.Mutex
+	data  map[string]types.WeatherData
+	order []string
 }
 
 func newStorage() *storage {
 	return &storage{
 		data:  make(map[string]types.WeatherData),
-		idxes: make([]string, 0, 8),
+		order: make([]string, 0, 8),
 	}
 }
 
@@ -24,23 +23,23 @@ func (s *storage) put(sensorID string, wd types.WeatherData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if _, ok := s.data[sensorID]; !ok {
+		s.order = append(s.order, sensorID)
+	}
 	s.data[sensorID] = wd
-	s.idxes = append(s.idxes, sensorID)
 }
 
 func (s *storage) getNext() (types.WeatherData, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if len(s.idxes) == 0 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.order) == 0 {
 		return types.WeatherData{}, false
 	}
 
-	sd := s.idxes[s.curIdx]
+	sd := s.order[0]
 	wd, ok := s.data[sd]
+	s.order = append(s.order[1:], sd)
 
-	s.curIdx++
-	if s.curIdx >= len(s.idxes) {
-		s.curIdx = 0
-	}
 	return wd, ok
 }
