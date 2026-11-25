@@ -42,6 +42,12 @@ func (b *Bus) Read() (types.WeatherData, error) {
 	if err != nil {
 		return types.WeatherData{}, fmt.Errorf("reading sensor data: %w", err)
 	}
+
+	// temporarry fix for overflow bug in external bme280 package
+	if h > 100.0 || h < 0.0 {
+		h = 100.0
+	}
+
 	return types.WeatherData{
 		Temperature: t,
 		Pressure:    p,
