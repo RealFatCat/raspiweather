@@ -50,41 +50,46 @@ func main() {
 
 	if *showVersion {
 		fmt.Printf("%s\n", Version)
-		os.Exit(0)
+		return
 	}
 
-	if *interval <= 0 {
-		slog.Error("Invalid -interval", "error", "must be greater than 0")
+	if err := run(); err != nil {
+		slog.Error("Failed to start", "error", err)
 		os.Exit(1)
 	}
+}
+
+func run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	if *interval <= 0 {
+		return fmt.Errorf("invalid -interval %v: must be greater than 0", *interval)
+	}
 	if *rotationInterval <= 0 {
-		slog.Error("Invalid -rotationInterval", "error", "must be greater than 0")
-		os.Exit(1)
+		return fmt.Errorf("invalid -rotationInterval %v: must be greater than 0", *rotationInterval)
 	}
 
 	fontByte, err := parseFont(*font)
 	if err != nil {
-		slog.Error("Invalid -font", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("invalid -font: %w", err)
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	sensorMetrics, err := metrics.NewSensorsMetrics(prometheus.DefaultRegisterer)
 	if err != nil {
-		slog.Error("Init metrics", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("init metrics: %w", err)
 	}
 
-	var sensorConfigs []producer.SensorConfig
-
-	// Parse multiple sensors from flag, init buses.
-	sensorConfigs, err = initSensorConfigs(bmeSensors)
+	// Parse sensors and open buses.
+	sensorConfigs, err := initSensorConfigs(bmeSensors)
 	if err != nil {
-		slog.Error("Init Sensor Config", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("init sensor configs: %w", err)
 	}
+	defer func() {
+		for i := range sensorConfigs {
+			_ = sensorConfigs[i].Bus.Close()
+		}
+	}()
 
 	// Create multi producer
 	dataProducer := producer.NewMultiProducer(sensorConfigs, *interval)
@@ -94,7 +99,9 @@ func main() {
 	fan := fanoutsub.New(ch)
 
 	meterCh := make(chan types.WeatherData, 1)
-	fan.Subscribe(meterCh)
+	if err := fan.Subscribe(meterCh); err != nil {
+		return fmt.Errorf("subscribe meter consumer: %w", err)
+	}
 	m := meter.New(sensorMetrics)
 	m.Consume(ctx, meterCh)
 
@@ -102,29 +109,31 @@ func main() {
 	if *lcdEnabled {
 		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, fontByte, *lcdBacklight)
 		if err != nil {
-			slog.Error("Starting LCD1602", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("starting LCD1602: %w", err)
 		}
-		backlightToggler = lcdDev
-
-		lcdCh := make(chan types.WeatherData, 1)
-		fan.Subscribe(lcdCh)
-		lcdConsumer := consumer_lcd.New(lcdDev, *rotationInterval)
-		lcdConsumer.Consume(ctx, lcdCh)
-
 		defer func() {
 			_ = lcdDev.Clear()
 			_ = lcdDev.Close()
 		}()
+		backlightToggler = lcdDev
+
+		lcdCh := make(chan types.WeatherData, 1)
+		if err := fan.Subscribe(lcdCh); err != nil {
+			return fmt.Errorf("subscribe LCD consumer: %w", err)
+		}
+		lcdConsumer := consumer_lcd.New(lcdDev, *rotationInterval)
+		lcdConsumer.Consume(ctx, lcdCh)
 	}
 
-	fan.Start(ctx)
+	if err := fan.Start(ctx); err != nil {
+		return fmt.Errorf("starting fanout: %w", err)
+	}
 
 	httpSrv := server.NewHTTP(*httpAddress, dataProducer, backlightToggler)
 	if err := httpSrv.ListenAndServe(ctx); err != nil {
-		slog.Error("HTTP server", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("HTTP server: %w", err)
 	}
+	return nil
 }
 
 func parseFont(font uint) (byte, error) {
@@ -135,7 +144,8 @@ func parseFont(font uint) (byte, error) {
 	return 0, fmt.Errorf("invalid font value %d, acceptable: %v", font, lcd.AcceptableFonts)
 }
 
-// initSensorConfigs parses sensor configurations, create buses.
+// initSensorConfigs parses sensor configurations and opens buses.
+// On a failure after some buses were opened, already-opened buses are closed.
 func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 	if *bmeSensors == "" {
 		return nil, fmt.Errorf("bmeSensors flag is not set")

@@ -30,6 +30,7 @@ func New(devPath string, i2cAddress int) (*Bus, error) {
 
 	b := bme280.New(d)
 	if err := b.Init(); err != nil {
+		_ = d.Close()
 		return nil, fmt.Errorf("initialization of bme280: %w", err)
 	}
 
@@ -62,5 +63,7 @@ func (b *Bus) Read() (types.WeatherData, error) {
 }
 
 func (b *Bus) Close() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	return b.device.Close()
 }

@@ -83,7 +83,10 @@ func (p *MultiProducer) produceAll(ctx context.Context, ch chan<- types.WeatherD
 // recorded in the returned Result; they do not fail the whole call.
 func (p *MultiProducer) ReadWeatherData() ReadWeatherResult {
 	if len(p.sensors) == 0 {
-		return ReadWeatherResult{Errors: []SensorError{{SensorID: "", Err: errors.New("no sensors configured")}}}
+		return ReadWeatherResult{
+			Data:   make([]types.WeatherData, 0),
+			Errors: []SensorError{{SensorID: "", Err: errors.New("no sensors configured")}},
+		}
 	}
 
 	res := ReadWeatherResult{
