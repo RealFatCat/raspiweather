@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -50,6 +51,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	fontByte, err := parseFont(*font)
+	if err != nil {
+		slog.Error("Invalid -font", "error", err)
+		os.Exit(1)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -82,7 +89,7 @@ func main() {
 
 	var backlightToggler server.BacklightToggler
 	if *lcdEnabled {
-		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, byte(*font), *lcdBacklight)
+		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, fontByte, *lcdBacklight)
 		if err != nil {
 			slog.Error("Starting LCD1602", "error", err)
 			os.Exit(1)
@@ -107,6 +114,14 @@ func main() {
 		slog.Error("HTTP server", "error", err)
 		os.Exit(1)
 	}
+}
+
+func parseFont(font uint) (byte, error) {
+	if slices.Contains(lcd.AcceptableFonts, font) {
+		return byte(font), nil
+	}
+
+	return 0, fmt.Errorf("invalid font value %d, acceptable: %v", font, lcd.AcceptableFonts)
 }
 
 // initSensorConfigs parses sensor configurations, create buses.
