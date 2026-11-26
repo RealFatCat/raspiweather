@@ -121,8 +121,7 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 		// Format: id:devPath:address
 		fields := strings.Split(part, ":")
 		if len(fields) != 3 {
-			slog.Error("Invalid sensor format", "sensor", part, "expected_format", "id:devPath:address")
-			os.Exit(1)
+			return nil, fmt.Errorf("invalid sensor format %q, expected id:devPath:address", part)
 		}
 
 		sensorID := strings.TrimSpace(fields[0])
