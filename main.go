@@ -148,9 +148,13 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 		devPath := strings.TrimSpace(fields[1])
 		addrStr := strings.TrimSpace(fields[2])
 
+		if sensorID == "" {
+			return nil, fmt.Errorf("sensor id is empty, expected id:devPath:address")
+		}
+
 		addr, err := parseAddr(addrStr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parsing address: %w", err)
 		}
 
 		bus, err := bme280.New(devPath, addr)

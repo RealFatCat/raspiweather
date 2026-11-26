@@ -2,6 +2,7 @@ package meter
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/realfatcat/raspiweather/internal/consumer"
 	"github.com/realfatcat/raspiweather/pkg/types"
@@ -30,13 +31,13 @@ func (m *Meter) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 					// Channel closed, exit gracefully
 					return
 				}
-				sensorID := sd.SensorID
-				if sensorID == "" {
-					sensorID = "default"
+				if sd.SensorID == "" {
+					slog.Warn("skipping record with empty sensor id")
+					continue
 				}
-				m.metrics.RecordTemperature(ctx, sensorID, sd.Temperature)
-				m.metrics.RecordHumidity(ctx, sensorID, sd.Humidity)
-				m.metrics.RecordPressure(ctx, sensorID, sd.Pressure)
+				m.metrics.RecordTemperature(ctx, sd.SensorID, sd.Temperature)
+				m.metrics.RecordHumidity(ctx, sd.SensorID, sd.Humidity)
+				m.metrics.RecordPressure(ctx, sd.SensorID, sd.Pressure)
 			}
 		}
 	}()
