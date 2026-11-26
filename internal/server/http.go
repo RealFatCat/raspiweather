@@ -110,7 +110,11 @@ func (h *HTTP) handleToggleLeds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("OK"))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		slog.Error("encoding toggle-leds response", "error", err)
+	}
 }
 
 func (h *HTTP) ListenAndServe(ctx context.Context) error {
