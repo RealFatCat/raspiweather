@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/realfatcat/fanoutsub"
 	"github.com/realfatcat/lcd1602"
 	consumer_lcd "github.com/realfatcat/raspiweather/internal/consumer/lcd"
@@ -52,12 +53,16 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	sensorMetrics := metrics.NewSensorsMetrics()
+	sensorMetrics, err := metrics.NewSensorsMetrics(prometheus.DefaultRegisterer)
+	if err != nil {
+		slog.Error("Init metrics", "error", err)
+		os.Exit(1)
+	}
 
 	var sensorConfigs []producer.SensorConfig
 
 	// Parse multiple sensors from flag, init buses.
-	sensorConfigs, err := initSensorConfigs(bmeSensors)
+	sensorConfigs, err = initSensorConfigs(bmeSensors)
 	if err != nil {
 		slog.Error("Init Sensor Config", "error", err)
 		os.Exit(1)

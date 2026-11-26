@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type SensorsMetrics struct {
@@ -13,30 +12,45 @@ type SensorsMetrics struct {
 	pressure    *prometheus.GaugeVec
 }
 
-func NewSensorsMetrics() *SensorsMetrics {
-	return &SensorsMetrics{
-		temperature: promauto.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "sensor_temperature",
-				Help: "Current temperature.",
-			},
-			[]string{"sensor_id", "unit"},
-		),
-		humidity: promauto.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "sensor_humidity",
-				Help: "Current humidity.",
-			},
-			[]string{"sensor_id", "unit"},
-		),
-		pressure: promauto.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "sensor_pressure",
-				Help: "Current pressure.",
-			},
-			[]string{"sensor_id", "unit"},
-		),
+// NewSensorsMetrics creates and registers the sensors metrics with reg.
+// Registration errors are returned, not panicked; on failure already-registered
+// collectors are unregistered so the caller can retry safely.
+func NewSensorsMetrics(reg prometheus.Registerer) (s *SensorsMetrics, err error) {
+	var registered []prometheus.Collector
+	defer func() {
+		if err != nil {
+			for _, c := range registered {
+				reg.Unregister(c)
+			}
+		}
+	}()
+
+	var temperature *prometheus.GaugeVec
+	temperature, err = gaugeVec(reg, "sensor_temperature", "Current temperature.", []string{"sensor_id", "unit"})
+	if err != nil {
+		return nil, err
 	}
+	registered = append(registered, temperature)
+
+	var humidity *prometheus.GaugeVec
+	humidity, err = gaugeVec(reg, "sensor_humidity", "Current humidity.", []string{"sensor_id", "unit"})
+	if err != nil {
+		return nil, err
+	}
+	registered = append(registered, humidity)
+
+	var pressure *prometheus.GaugeVec
+	pressure, err = gaugeVec(reg, "sensor_pressure", "Current pressure.", []string{"sensor_id", "unit"})
+	if err != nil {
+		return nil, err
+	}
+	registered = append(registered, pressure)
+
+	return &SensorsMetrics{
+		temperature: temperature,
+		humidity:    humidity,
+		pressure:    pressure,
+	}, nil
 }
 
 func (s *SensorsMetrics) RecordTemperature(_ context.Context, sensorID string, num float64) {
