@@ -131,13 +131,15 @@ no sensor produced data.
       "sensor_id": "out",
       "temperature": 25.0,
       "humidity": 44.0,
-      "pressure": 1000.0
+      "pressure": 1000.0,
+      "timestamp": "2026-11-26T23:59:00Z"
     },
     {
       "sensor_id": "in",
       "temperature": 22.5,
       "humidity": 50.0,
-      "pressure": 1001.2
+      "pressure": 1001.2,
+      "timestamp": "2026-11-26T23:59:00Z"
     }
   ],
   "errors": [

@@ -67,6 +67,7 @@ func (p *MultiProducer) produceAll(ctx context.Context, ch chan<- types.WeatherD
 				return
 			}
 			data.SensorID = sensor.ID
+			data.Timestamp = time.Now()
 
 			select {
 			case <-ctx.Done():
@@ -97,6 +98,7 @@ func (p *MultiProducer) ReadWeatherData() ReadWeatherResult {
 			continue
 		}
 		data.SensorID = sensor.ID
+		data.Timestamp = time.Now()
 		res.Data = append(res.Data, data)
 	}
 	return res
