@@ -66,7 +66,7 @@ func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 			case <-ticker.C:
 				wd, ok := l.storage.getNext()
 				if !ok {
-					break
+					continue
 				}
 				l.printer.Clear()
 				l.print(wd)
