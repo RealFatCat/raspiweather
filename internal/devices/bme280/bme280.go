@@ -2,6 +2,7 @@ package bme280
 
 import (
 	"fmt"
+	"sync"
 
 	"golang.org/x/exp/io/i2c"
 
@@ -16,6 +17,7 @@ const (
 )
 
 type Bus struct {
+	mu     sync.Mutex
 	device *i2c.Device
 	bme280 *bme280.BME280
 }
@@ -38,6 +40,9 @@ func New(devPath string, i2cAddress int) (*Bus, error) {
 }
 
 func (b *Bus) Read() (types.WeatherData, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	t, p, h, err := b.bme280.EnvData()
 	if err != nil {
 		return types.WeatherData{}, fmt.Errorf("reading sensor data: %w", err)
