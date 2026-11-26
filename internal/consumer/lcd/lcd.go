@@ -36,23 +36,6 @@ func New(printer Printer, rotationInterval time.Duration) *LCD {
 }
 
 func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
-	exitCh := make(chan struct{}, 1)
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case sd, ok := <-ch:
-				if !ok {
-					// Channel closed, exit gracefully
-					exitCh <- struct{}{}
-					return
-				}
-				l.storage.put(sd.SensorID, sd)
-			}
-		}
-	}()
-
 	go func() {
 		ticker := time.NewTicker(l.rotationInterval)
 		defer ticker.Stop()
@@ -61,14 +44,19 @@ func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-exitCh:
-				return
+			case sd, ok := <-ch:
+				if !ok {
+					return
+				}
+				l.storage.put(sd.SensorID, sd)
 			case <-ticker.C:
 				wd, ok := l.storage.getNext()
 				if !ok {
 					continue
 				}
-				l.printer.Clear()
+				if err := l.printer.Clear(); err != nil {
+					slog.Error("Clearing LCD", "error", err)
+				}
 				l.print(wd)
 			}
 		}
