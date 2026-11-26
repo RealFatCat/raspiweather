@@ -3,7 +3,6 @@ package producer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -79,30 +78,26 @@ func (p *MultiProducer) produceAll(ctx context.Context, ch chan<- types.WeatherD
 	wg.Wait()
 }
 
-// ReadWeatherData reads from all sensors and returns a slice of weather data.
-// Partial failures are logged and skipped.
-// If all sensors fail, an error is returned.
-func (p *MultiProducer) ReadWeatherData() ([]types.WeatherData, error) {
+// ReadWeatherData reads from all sensors. Partial failures are logged and
+// recorded in the returned Result; they do not fail the whole call.
+func (p *MultiProducer) ReadWeatherData() ReadWeatherResult {
 	if len(p.sensors) == 0 {
-		return nil, errors.New("no sensors configured")
+		return ReadWeatherResult{Errors: []SensorError{{SensorID: "", Err: errors.New("no sensors configured")}}}
 	}
 
-	results := make([]types.WeatherData, 0, len(p.sensors))
-	var errs []error
+	res := ReadWeatherResult{
+		Data:   make([]types.WeatherData, 0, len(p.sensors)),
+		Errors: make([]SensorError, 0, len(p.sensors)),
+	}
 	for _, sensor := range p.sensors {
 		data, err := sensor.Bus.Read()
 		if err != nil {
 			slog.Error("reading sensor data", "sensor_id", sensor.ID, "error", err)
-			errs = append(errs, fmt.Errorf("sensor %s: %w", sensor.ID, err))
+			res.Errors = append(res.Errors, SensorError{SensorID: sensor.ID, Err: err})
 			continue
 		}
 		data.SensorID = sensor.ID
-		results = append(results, data)
+		res.Data = append(res.Data, data)
 	}
-
-	if len(results) == 0 {
-		return nil, errors.Join(errs...)
-	}
-
-	return results, nil
+	return res
 }

@@ -1,9 +1,9 @@
 package server
 
-import "github.com/realfatcat/raspiweather/pkg/types"
+import "github.com/realfatcat/raspiweather/internal/producer"
 
 type Producer interface {
-	ReadWeatherData() ([]types.WeatherData, error)
+	ReadWeatherData() producer.ReadWeatherResult
 }
 
 type BacklightToggler interface {

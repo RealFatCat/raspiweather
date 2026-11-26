@@ -14,5 +14,5 @@ type Bus interface {
 // ProducerInterface defines the interface for weather data producers
 type ProducerInterface interface {
 	Produce(ctx context.Context) <-chan types.WeatherData
-	ReadWeatherData() (types.WeatherData, error)
+	ReadWeatherData() ReadWeatherResult
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
 const (
@@ -46,25 +47,46 @@ func NewHTTP(address string, producer Producer, toggler BacklightToggler) *HTTP 
 	return h
 }
 
+// sensorDataResponse is the JSON body returned by /sensor-data.
+// Data holds the readings that succeeded.
+// Errors describes sensors that failed.
+// A partial response (some data, some errors) is still a 200 OK.
+type sensorDataResponse struct {
+	Data   []types.WeatherData   `json:"data"`
+	Errors []sensorErrorResponse `json:"errors,omitempty"`
+}
+
+type sensorErrorResponse struct {
+	SensorID string `json:"sensor_id"`
+	Error    string `json:"error"`
+}
+
 func (h *HTTP) handleGetWeatherData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	data, err := h.producer.ReadWeatherData()
-	if err != nil {
-		slog.Error("reading sensor data", "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	res := h.producer.ReadWeatherData()
+
+	resp := sensorDataResponse{Data: res.Data}
+	for _, e := range res.Errors {
+		msg := "unknown error"
+		if e.Err != nil {
+			msg = e.Err.Error()
+		}
+		resp.Errors = append(resp.Errors, sensorErrorResponse{SensorID: e.SensorID, Error: msg})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if len(res.Data) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		slog.Error("encoding sensor data", "error", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -81,7 +103,7 @@ func (h *HTTP) handleToggleLeds(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.backlightToggler.ToggleBacklight(); err != nil {
-		slog.Error("reading sensor data", "error", err)
+		slog.Error("toggling backlight", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
