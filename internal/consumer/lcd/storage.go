@@ -10,6 +10,7 @@ type storage struct {
 	mu    sync.Mutex
 	data  map[string]types.WeatherData
 	order []string
+	head  int
 }
 
 func newStorage() *storage {
@@ -37,9 +38,9 @@ func (s *storage) getNext() (types.WeatherData, bool) {
 		return types.WeatherData{}, false
 	}
 
-	sd := s.order[0]
-	wd, ok := s.data[sd]
-	s.order = append(s.order[1:], sd)
+	id := s.order[s.head]
+	s.head = (s.head + 1) % len(s.order)
 
+	wd, ok := s.data[id]
 	return wd, ok
 }
