@@ -15,9 +15,10 @@ const (
 	// Graceful shutdown timeout
 	shutdownTimeout = 5 * time.Second
 	// Request timeouts
-	readTimeout  = 5 * time.Second  // Maximum duration for reading the entire request
-	writeTimeout = 5 * time.Second  // Maximum duration before timing out writes of the response
-	idleTimeout  = 60 * time.Second // Maximum amount of time to wait for the next request when keep-alives are enabled
+	readTimeout       = 5 * time.Second  // Maximum duration for reading the entire request
+	readHeaderTimeout = 1 * time.Second  // Maximum duration for reading request headers
+	writeTimeout      = 5 * time.Second  // Maximum duration before timing out writes of the response
+	idleTimeout       = 60 * time.Second // Maximum amount of time to wait for the next request when keep-alives are enabled
 )
 
 type HTTP struct {
@@ -38,11 +39,12 @@ func NewHTTP(address string, producer Producer, toggler BacklightToggler) *HTTP 
 	mux.HandleFunc("/toggle-leds", h.handleToggleLeds)
 
 	h.srv = &http.Server{
-		Addr:         address,
-		Handler:      mux,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-		IdleTimeout:  idleTimeout,
+		Addr:              address,
+		Handler:           mux,
+		ReadTimeout:       readTimeout,
+		ReadHeaderTimeout: readHeaderTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
 	}
 	return h
 }
