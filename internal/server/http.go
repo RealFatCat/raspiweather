@@ -134,7 +134,7 @@ func (h *HTTP) ListenAndServe(ctx context.Context) error {
 	case <-ctx.Done():
 		slog.Info("Shutting down server...")
 
-		shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
 		if err := h.srv.Shutdown(shutdownCtx); err != nil {

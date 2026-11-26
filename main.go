@@ -53,6 +53,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *interval <= 0 {
+		slog.Error("Invalid -interval", "error", "must be greater than 0")
+		os.Exit(1)
+	}
+	if *rotationInterval <= 0 {
+		slog.Error("Invalid -rotationInterval", "error", "must be greater than 0")
+		os.Exit(1)
+	}
+
 	fontByte, err := parseFont(*font)
 	if err != nil {
 		slog.Error("Invalid -font", "error", err)
@@ -132,7 +141,14 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 		return nil, fmt.Errorf("bmeSensors flag is not set")
 	}
 
-	var sensorConfigs []producer.SensorConfig
+	type sensorSpec struct {
+		id      string
+		devPath string
+		addr    int
+	}
+
+	var specs []sensorSpec
+	seenIDs := make(map[string]bool)
 
 	for part := range strings.SplitSeq(*bmeSensors, ",") {
 		part = strings.TrimSpace(part)
@@ -154,18 +170,35 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 			return nil, fmt.Errorf("sensor id is empty, expected id:devPath:address")
 		}
 
+		if seenIDs[sensorID] {
+			return nil, fmt.Errorf("duplicate sensor id %q", sensorID)
+		}
+		seenIDs[sensorID] = true
+
 		addr, err := parseAddr(addrStr)
 		if err != nil {
-			return nil, fmt.Errorf("parsing address: %w", err)
+			return nil, fmt.Errorf("parsing address for sensor_id %s: %w", sensorID, err)
 		}
 
-		bus, err := bme280.New(devPath, addr)
+		specs = append(specs, sensorSpec{id: sensorID, devPath: devPath, addr: addr})
+	}
+
+	if len(specs) == 0 {
+		return nil, fmt.Errorf("no sensors configured")
+	}
+
+	var sensorConfigs []producer.SensorConfig
+	for _, spec := range specs {
+		bus, err := bme280.New(spec.devPath, spec.addr)
 		if err != nil {
-			return nil, fmt.Errorf("starting BME280, sensor_id %s: %w", sensorID, err)
+			for _, cfg := range sensorConfigs {
+				_ = cfg.Bus.Close()
+			}
+			return nil, fmt.Errorf("starting BME280, sensor_id %s: %w", spec.id, err)
 		}
 
 		sensorConfigs = append(sensorConfigs, producer.SensorConfig{
-			ID:  sensorID,
+			ID:  spec.id,
 			Bus: bus,
 		})
 	}
