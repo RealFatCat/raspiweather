@@ -79,8 +79,10 @@ make clean
 $ raspiweather -h
 Usage of raspiweather:
   -bmeSensors string
-        Comma-separated list of BME280 sensors in format id:devPath:address 
-        (e.g., 'out:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77') (default "out:/dev/i2c-1:0x76")
+        Comma-separated list of BME280 sensors in format id:devPath:address
+        (e.g., 'sensor1:/dev/i2c-1:0x76,sensor2:/dev/i2c-1:0x77') (default "out:/dev/i2c-1:0x76")
+  -font uint
+        lcd font, possible values 0 for 5x8 and 4 for 5x10
   -httpAddress string
         Address for HTTP Server (default ":9111")
   -interval duration
@@ -97,6 +99,8 @@ Usage of raspiweather:
         Path to i2c lcd device (default "/dev/i2c-1")
   -lcdRows int
         Number of LCD rows (default 2)
+  -rotationInterval duration
+        Rotation interval of sensors data displayed on screen (default 10s)
   -v    Show version and exit
 ```
 
@@ -115,23 +119,34 @@ Examples:
 
 ### GET /sensor-data
 
-Returns current sensor readings from all configured sensors in JSON format:
+Returns current sensor readings from all configured sensors in JSON format.
+Sensors that fail to read are reported in the `errors` array; a partial response
+(some data, some errors) still returns HTTP 200. HTTP 500 is returned only when
+no sensor produced data.
 
 ```json
-[
-  {
-    "sensor_id": "out",
-    "temperature": 25.0,
-    "humidity": 44.0,
-    "pressure": 1000.0
-  },
-  {
-    "sensor_id": "in",
-    "temperature": 22.5,
-    "humidity": 50.0,
-    "pressure": 1001.2
-  }
-]
+{
+  "data": [
+    {
+      "sensor_id": "out",
+      "temperature": 25.0,
+      "humidity": 44.0,
+      "pressure": 1000.0
+    },
+    {
+      "sensor_id": "in",
+      "temperature": 22.5,
+      "humidity": 50.0,
+      "pressure": 1001.2
+    }
+  ],
+  "errors": [
+    {
+      "sensor_id": "failed-sensor",
+      "error": "i2c read failed: no such device"
+    }
+  ]
+}
 ```
 
 ### GET /metrics
@@ -144,7 +159,9 @@ Prometheus metrics endpoint with the following metrics:
 
 ### GET /toggle-leds
 
-Toggles the LCD backlight on/off. Returns "OK" on success. Requires LCD to be enabled.
+Toggles the LCD backlight on/off. Returns HTTP 200 with `{"status":"ok"}` on success,
+or an error message with HTTP 500 if the backlight toggler is unavailable or toggling fails.
+Requires LCD to be enabled (`-lcd`).
 
 ## Examples
 

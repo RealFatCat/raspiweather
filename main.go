@@ -26,7 +26,9 @@ import (
 	"github.com/realfatcat/raspiweather/pkg/types"
 )
 
-var Version string
+// Version is injected at build time via -ldflags (see Makefile).
+// Falls back to "dev" for plain `go build`.
+var Version = "dev"
 
 var (
 	interval         = flag.Duration("interval", 1*time.Minute, "Interval of collecting sensors data")
