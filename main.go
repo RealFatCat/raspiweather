@@ -133,6 +133,10 @@ func run() error {
 	if err := httpSrv.ListenAndServe(ctx); err != nil {
 		return fmt.Errorf("HTTP server: %w", err)
 	}
+
+	// Wait for the fanout to drain and close subscriber channels so consumers
+	// (meter, LCD) finish recording/rendering before run() returns.
+	<-fan.Done()
 	return nil
 }
 
