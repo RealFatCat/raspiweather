@@ -86,7 +86,7 @@ Usage of raspiweather:
   -httpAddress string
         Address for HTTP Server (default ":9111")
   -interval duration
-        Interval of collecting sensors data (default 1m0s)
+        Interval at which all sensors are read; the first read happens immediately at startup (default 1m0s)
   -lcd
         Enable LCD1602
   -lcdAddr int
@@ -99,6 +99,8 @@ Usage of raspiweather:
         Path to i2c lcd device (default "/dev/i2c-1")
   -lcdRows int
         Number of LCD rows (default 2)
+  -lcdStaleWindow duration
+        Data older than this window is shown as "No data" on the LCD (default 1m0s)
   -rotationInterval duration
         Rotation interval of sensors data displayed on screen (default 10s)
   -v    Show version and exit

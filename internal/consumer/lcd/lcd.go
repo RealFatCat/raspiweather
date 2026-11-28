@@ -12,14 +12,20 @@ import (
 type LCD struct {
 	printer          Printer
 	rotationInterval time.Duration
+	stalenessWindow  time.Duration
 	storage          *storage
 	print            func(types.WeatherData)
 }
 
-func New(printer Printer, rotationInterval time.Duration) *LCD {
+// New creates an LCD consumer. stalenessWindow must be greater than zero:
+// data older than this window is considered stale and the screen displays
+// "No data" for that sensor. It is independent of the producer's collection
+// interval.
+func New(printer Printer, rotationInterval time.Duration, stalenessWindow time.Duration) *LCD {
 	lcd := &LCD{
 		printer:          printer,
 		rotationInterval: rotationInterval,
+		stalenessWindow:  stalenessWindow,
 		storage:          newStorage(),
 	}
 
@@ -50,20 +56,45 @@ func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) <-chan s
 				if !ok {
 					return
 				}
+				isFirst := l.storage.isEmpty()
 				l.storage.put(sd.SensorID, sd)
+				if isFirst {
+					l.render(sd)
+				}
 			case <-ticker.C:
 				wd, ok := l.storage.getNext()
 				if !ok {
 					continue
 				}
-				if err := l.printer.Clear(); err != nil {
-					slog.Error("Clearing LCD", "error", err)
+				if time.Since(wd.Timestamp) > l.stalenessWindow {
+					l.showNoData(wd.SensorID)
+					continue
 				}
-				l.print(wd)
+				l.render(wd)
 			}
 		}
 	}()
 	return done
+}
+
+func (l *LCD) render(wd types.WeatherData) {
+	if err := l.printer.Clear(); err != nil {
+		slog.Error("Clearing LCD", "error", err)
+	}
+	l.print(wd)
+}
+
+func (l *LCD) showNoData(sensorID string) {
+	if err := l.printer.Clear(); err != nil {
+		slog.Error("Clearing LCD", "error", err)
+	}
+	const suffix = ": No data"
+	// Truncate the id so the whole line fits the LCD and the suffix stays
+	// visible. idLen is not printed; it is only a width budget.
+	idLen := max(l.printer.Columns()-len(suffix), 1)
+	if err := l.printer.Print(fmt.Sprintf("%.*s"+suffix, idLen, sensorID), 0, 0); err != nil {
+		slog.Error("Writing no-data message to LCD", "error", err)
+	}
 }
 
 func (l *LCD) printOneRow(wd types.WeatherData) {

@@ -31,7 +31,7 @@ import (
 var Version = "dev"
 
 var (
-	interval         = flag.Duration("interval", 1*time.Minute, "Interval of collecting sensors data")
+	interval         = flag.Duration("interval", 1*time.Minute, "Interval at which all sensors are read; the first read happens immediately at startup")
 	httpAddress      = flag.String("httpAddress", ":9111", "Address for HTTP Server")
 	i2cLCDDevPath    = flag.String("lcdDevPath", lcd1602.DefaultDevice, "Path to i2c lcd device")
 	lcdAddr          = flag.Int("lcdAddr", lcd1602.DefaultAddress, "Address of lcd1602")
@@ -43,6 +43,7 @@ var (
 	font             = flag.Uint("font", lcd1602.Font5x8, "lcd font, possible values 0 for 5x8 and 4 for 5x10")
 	showVersion      = flag.Bool("v", false, "Show version and exit")
 	rotationInterval = flag.Duration("rotationInterval", 10*time.Second, "Rotation interval of sensors data displayed on screen")
+	lcdStaleWindow   = flag.Duration("lcdStaleWindow", 1*time.Minute, "Data older than this window is shown as \"No data\" on the LCD")
 )
 
 func main() {
@@ -68,6 +69,9 @@ func run() error {
 	}
 	if *rotationInterval <= 0 {
 		return fmt.Errorf("invalid -rotationInterval %v: must be greater than 0", *rotationInterval)
+	}
+	if *lcdStaleWindow <= 0 {
+		return fmt.Errorf("invalid -lcdStaleWindow %v: must be greater than 0", *lcdStaleWindow)
 	}
 
 	fontByte, err := parseFont(*font)
@@ -125,7 +129,7 @@ func run() error {
 		if err := fan.Subscribe(lcdCh); err != nil {
 			return fmt.Errorf("subscribe LCD consumer: %w", err)
 		}
-		lcdConsumer := consumer_lcd.New(lcdDev, *rotationInterval)
+		lcdConsumer := consumer_lcd.New(lcdDev, *rotationInterval, *lcdStaleWindow)
 		lcdDone = lcdConsumer.Consume(ctx, lcdCh)
 	}
 

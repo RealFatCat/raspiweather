@@ -30,6 +30,13 @@ func (s *storage) put(sensorID string, wd types.WeatherData) {
 	s.data[sensorID] = wd
 }
 
+func (s *storage) isEmpty() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return len(s.order) == 0
+}
+
 func (s *storage) getNext() (types.WeatherData, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
