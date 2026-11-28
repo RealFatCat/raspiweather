@@ -2,6 +2,7 @@ package lcd
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/realfatcat/lcd1602"
 )
@@ -14,16 +15,15 @@ type LCD struct {
 	cols int
 }
 
-func New(bus string, addr int, cols int, rows int, font byte, isBacklightOn bool) (*LCD, error) {
-	if font != lcd1602.Font5x8 && font != lcd1602.Font5x10 {
-		err := fmt.Errorf("invalid font value %d, acceptable: %v", font, AcceptableFonts)
-		return nil, err
+func New(bus string, addr int, cols int, rows int, font uint, isBacklightOn bool) (*LCD, error) {
+	// Single validation point for the font; callers pass the flag value as-is.
+	if !slices.Contains(AcceptableFonts, font) {
+		return nil, fmt.Errorf("invalid font value %d, acceptable: %v", font, AcceptableFonts)
 	}
 
-	lcdDev, err := lcd1602.New(bus, addr, cols, rows, font, isBacklightOn)
+	lcdDev, err := lcd1602.New(bus, addr, cols, rows, byte(font), isBacklightOn)
 	if err != nil {
-		err := fmt.Errorf("creating new LCD: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("creating new LCD: %w", err)
 	}
 	return &LCD{
 		lcd:  lcdDev,

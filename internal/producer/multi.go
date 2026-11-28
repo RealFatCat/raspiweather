@@ -3,6 +3,7 @@ package producer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -22,12 +23,16 @@ type MultiProducer struct {
 	sensors  []SensorConfig
 }
 
-// NewMultiProducer creates a new MultiProducer with multiple sensor configurations
-func NewMultiProducer(sensors []SensorConfig, interval time.Duration) *MultiProducer {
+// NewMultiProducer creates a new MultiProducer with multiple sensor configurations.
+// Interval must be greater than zero.
+func NewMultiProducer(sensors []SensorConfig, interval time.Duration) (*MultiProducer, error) {
+	if interval <= 0 {
+		return nil, fmt.Errorf("interval must be greater than 0, got %v", interval)
+	}
 	return &MultiProducer{
 		interval: interval,
 		sensors:  sensors,
-	}
+	}, nil
 }
 
 // Produce produces weather data from all sensors at the specified interval

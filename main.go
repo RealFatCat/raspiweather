@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -74,11 +73,6 @@ func run() error {
 		return fmt.Errorf("invalid -lcdStaleWindow %v: must be greater than 0", *lcdStaleWindow)
 	}
 
-	fontByte, err := parseFont(*font)
-	if err != nil {
-		return fmt.Errorf("invalid -font: %w", err)
-	}
-
 	sensorMetrics, err := metrics.NewSensorsMetrics(prometheus.DefaultRegisterer)
 	if err != nil {
 		return fmt.Errorf("init metrics: %w", err)
@@ -96,7 +90,10 @@ func run() error {
 	}()
 
 	// Create multi producer
-	dataProducer := producer.NewMultiProducer(sensorConfigs, *interval)
+	dataProducer, err := producer.NewMultiProducer(sensorConfigs, *interval)
+	if err != nil {
+		return fmt.Errorf("creating multi producer: %w", err)
+	}
 
 	ch := dataProducer.Produce(ctx)
 
@@ -115,7 +112,7 @@ func run() error {
 	meterDone = m.Consume(ctx, meterCh)
 
 	if *lcdEnabled {
-		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, fontByte, *lcdBacklight)
+		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, *font, *lcdBacklight)
 		if err != nil {
 			return fmt.Errorf("starting LCD1602: %w", err)
 		}
@@ -159,14 +156,6 @@ func run() error {
 		return fmt.Errorf("HTTP server: %w", err)
 	}
 	return nil
-}
-
-func parseFont(font uint) (byte, error) {
-	if slices.Contains(lcd.AcceptableFonts, font) {
-		return byte(font), nil
-	}
-
-	return 0, fmt.Errorf("invalid font value %d, acceptable: %v", font, lcd.AcceptableFonts)
 }
 
 // initSensorConfigs parses sensor configurations and opens buses.

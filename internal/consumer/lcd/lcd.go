@@ -89,17 +89,17 @@ func (l *LCD) showNoData(sensorID string) {
 		slog.Error("Clearing LCD", "error", err)
 	}
 	const suffix = ": No data"
-	// Truncate the id so the whole line fits the LCD and the suffix stays
-	// visible. idLen is not printed; it is only a width budget.
+	// Truncate the id so the whole line fits the LCD and the suffix stays visible.
+	// idLen is not printed; it is only a width budget.
 	idLen := max(l.printer.Columns()-len(suffix), 1)
-	if err := l.printer.Print(fmt.Sprintf("%.*s"+suffix, idLen, sensorID), 0, 0); err != nil {
+	if err := l.printer.Print(truncateRunes(sensorID, idLen)+suffix, 0, 0); err != nil {
 		slog.Error("Writing no-data message to LCD", "error", err)
 	}
 }
 
 func (l *LCD) printOneRow(wd types.WeatherData) {
 	if err := l.printer.Print(
-		fmt.Sprintf("%.*s T%.0f H%.0f P%.0f", 3, wd.SensorID, wd.Temperature, wd.Humidity, wd.Pressure*0.75), 0, 0); err != nil {
+		fmt.Sprintf("%s T%.0f H%.0f P%.0f", truncateRunes(wd.SensorID, 3), wd.Temperature, wd.Humidity, wd.Pressure*0.75), 0, 0); err != nil {
 		slog.Error("Writing sensor data to LCD", "error", err)
 	}
 }
@@ -109,7 +109,7 @@ func (l *LCD) printTwoRows(wd types.WeatherData) {
 		slog.Error("Writing Temperature and Humidity to LCD", "error", err)
 	}
 
-	if err := l.printer.Print(fmt.Sprintf("P:%.1fmm [%.*s]", wd.Pressure*0.75, 3, wd.SensorID), 1, 0); err != nil {
+	if err := l.printer.Print(fmt.Sprintf("P:%.1fmm [%s]", wd.Pressure*0.75, truncateRunes(wd.SensorID, 3)), 1, 0); err != nil {
 		slog.Error("Writing Pressure to LCD", "error", err)
 	}
 }
@@ -120,7 +120,7 @@ func (l *LCD) printFourRows(wd types.WeatherData) {
 		idLenLimit = 16
 	}
 
-	if err := l.printer.Print(fmt.Sprintf("ID: %.*s", idLenLimit, wd.SensorID), 0, 0); err != nil {
+	if err := l.printer.Print(fmt.Sprintf("ID: %s", truncateRunes(wd.SensorID, idLenLimit)), 0, 0); err != nil {
 		slog.Error("Writing SensorID to LCD", "error", err)
 	}
 
@@ -135,4 +135,18 @@ func (l *LCD) printFourRows(wd types.WeatherData) {
 	if err := l.printer.Print(fmt.Sprintf("Pressure: %.2fmm", wd.Pressure*0.75), 3, 0); err != nil {
 		slog.Error("Writing Pressure to LCD", "error", err)
 	}
+}
+
+// truncateRunes returns s shortened to at most n runes. Byte-wise
+// truncation (`fmt.Sprintf("%.*s", n, s)`) may split a multi-byte rune and
+// produce invalid UTF-8 for non-ASCII sensor IDs.
+func truncateRunes(s string, n int) string {
+	if n <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n])
 }
