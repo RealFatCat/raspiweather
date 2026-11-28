@@ -35,8 +35,10 @@ func New(printer Printer, rotationInterval time.Duration) *LCD {
 	return lcd
 }
 
-func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
+func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) <-chan struct{} {
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		ticker := time.NewTicker(l.rotationInterval)
 		defer ticker.Stop()
 
@@ -61,6 +63,7 @@ func (l *LCD) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 			}
 		}
 	}()
+	return done
 }
 
 func (l *LCD) printOneRow(wd types.WeatherData) {

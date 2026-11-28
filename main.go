@@ -98,14 +98,18 @@ func run() error {
 
 	fan := fanoutsub.New(ch)
 
+	var backlightToggler server.BacklightToggler
+	var lcdDone <-chan struct{}
+	var meterDone <-chan struct{}
+	var started bool
+
 	meterCh := make(chan types.WeatherData, 1)
 	if err := fan.Subscribe(meterCh); err != nil {
 		return fmt.Errorf("subscribe meter consumer: %w", err)
 	}
 	m := meter.New(sensorMetrics)
-	m.Consume(ctx, meterCh)
+	meterDone = m.Consume(ctx, meterCh)
 
-	var backlightToggler server.BacklightToggler
 	if *lcdEnabled {
 		lcdDev, err := lcd.New(*i2cLCDDevPath, *lcdAddr, *lcdColumns, *lcdRows, fontByte, *lcdBacklight)
 		if err != nil {
@@ -122,21 +126,34 @@ func run() error {
 			return fmt.Errorf("subscribe LCD consumer: %w", err)
 		}
 		lcdConsumer := consumer_lcd.New(lcdDev, *rotationInterval)
-		lcdConsumer.Consume(ctx, lcdCh)
+		lcdDone = lcdConsumer.Consume(ctx, lcdCh)
 	}
+
+	// Registered last so it runs first.
+	// Cancel the context and let the fanout drain and the consumers (meter, LCD),
+	// finish before any resource is closed.
+	// Done is only awaited if the fanout actually started,
+	// otherwise fanout never ran and Done is never closed.
+	defer func() {
+		stop()
+		if started {
+			<-fan.Done()
+		}
+		<-meterDone
+		if lcdDone != nil {
+			<-lcdDone
+		}
+	}()
 
 	if err := fan.Start(ctx); err != nil {
 		return fmt.Errorf("starting fanout: %w", err)
 	}
+	started = true
 
 	httpSrv := server.NewHTTP(*httpAddress, dataProducer, backlightToggler)
 	if err := httpSrv.ListenAndServe(ctx); err != nil {
 		return fmt.Errorf("HTTP server: %w", err)
 	}
-
-	// Wait for the fanout to drain and close subscriber channels so consumers
-	// (meter, LCD) finish recording/rendering before run() returns.
-	<-fan.Done()
 	return nil
 }
 
@@ -183,6 +200,9 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 		if sensorID == "" {
 			return nil, fmt.Errorf("sensor id is empty, expected id:devPath:address")
 		}
+		if devPath == "" {
+			return nil, fmt.Errorf("devPath is empty for sensor_id %s, expected id:devPath:address", sensorID)
+		}
 
 		if seenIDs[sensorID] {
 			return nil, fmt.Errorf("duplicate sensor id %q", sensorID)
@@ -219,19 +239,31 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 	return sensorConfigs, nil
 }
 
-// parseAddress parses strings address to int, support both decimal and hex
+// parseAddr parses I2C address (decimal, or hex with 0x/0X prefix).
 func parseAddr(inAddr string) (int, error) {
-	if strings.HasPrefix(inAddr, "0x") || strings.HasPrefix(inAddr, "0X") {
-		addr64, err := strconv.ParseInt(inAddr[2:], 16, 64)
-		if err != nil {
-			return 0, err
-		}
-		return int(addr64), nil
+	s := strings.TrimSpace(inAddr)
+	if s == "" {
+		return 0, fmt.Errorf("address is empty")
 	}
 
-	addr64, err := strconv.ParseInt(inAddr, 10, 64)
+	base := 10
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+		base = 16
+		s = s[2:]
+	}
+	if s == "" {
+		return 0, fmt.Errorf("invalid address %q: no digits", inAddr)
+	}
+	if strings.ContainsAny(s, "+-_ ") {
+		return 0, fmt.Errorf("invalid address %q: only digits are allowed", inAddr)
+	}
+
+	addr64, err := strconv.ParseInt(s, base, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("invalid address %q: %w", inAddr, err)
+	}
+	if addr64 < 0 || addr64 > 0x7F {
+		return 0, fmt.Errorf("address 0x%02x out of range, expected 0x00-0x7F", addr64)
 	}
 	return int(addr64), nil
 }

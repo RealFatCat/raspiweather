@@ -20,8 +20,10 @@ func New(metrics Metrics) *Meter {
 	}
 }
 
-func (m *Meter) Consume(ctx context.Context, ch <-chan types.WeatherData) {
+func (m *Meter) Consume(ctx context.Context, ch <-chan types.WeatherData) <-chan struct{} {
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		for {
 			select {
 			case <-ctx.Done():
@@ -41,4 +43,5 @@ func (m *Meter) Consume(ctx context.Context, ch <-chan types.WeatherData) {
 			}
 		}
 	}()
+	return done
 }

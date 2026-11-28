@@ -1,7 +1,7 @@
 package lcd
 
 type Printer interface {
-	Print(text string, col, row int) error
+	Print(text string, row, col int) error
 	Rows() int
 	Columns() int
 	Clear() error
