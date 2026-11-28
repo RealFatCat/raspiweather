@@ -20,4 +20,3 @@ type ReadWeatherResult struct {
 	Data   []types.WeatherData
 	Errors []SensorError
 }
-
