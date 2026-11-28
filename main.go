@@ -79,7 +79,7 @@ func run() error {
 	}
 
 	// Parse sensors and open buses.
-	sensorConfigs, err := initSensorConfigs(bmeSensors)
+	sensorConfigs, err := initSensorConfigs(*bmeSensors)
 	if err != nil {
 		return fmt.Errorf("init sensor configs: %w", err)
 	}
@@ -160,8 +160,8 @@ func run() error {
 
 // initSensorConfigs parses sensor configurations and opens buses.
 // On a failure after some buses were opened, already-opened buses are closed.
-func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
-	if *bmeSensors == "" {
+func initSensorConfigs(bmeSensors string) ([]producer.SensorConfig, error) {
+	if bmeSensors == "" {
 		return nil, fmt.Errorf("bmeSensors flag is not set")
 	}
 
@@ -174,7 +174,7 @@ func initSensorConfigs(bmeSensors *string) ([]producer.SensorConfig, error) {
 	var specs []sensorSpec
 	seenIDs := make(map[string]bool)
 
-	for part := range strings.SplitSeq(*bmeSensors, ",") {
+	for part := range strings.SplitSeq(bmeSensors, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
